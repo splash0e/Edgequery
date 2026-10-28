@@ -1,0 +1,15 @@
+## 🔮 Future Scope
+
+EDGEQUERY can be further enhanced to provide more powerful, efficient, and scalable data analysis on resource-constrained edge devices.
+
+* **External Storage Integration:** Add SPI microSD storage support to store datasets, analysis reports, and historical records beyond the ESP32's limited internal memory.
+* **Larger Dataset Support:** Implement chunk-based processing and streaming analysis to handle larger datasets with lower RAM consumption.
+* **Advanced Query Engine:** Integrate a lightweight SQL engine or improve the existing rule-based query system to support more complex data queries.
+* **AI-Powered Analytics:** Enable natural-language data analysis using a connected computer or remote AI service, while keeping basic analysis available locally.
+* **Enhanced Visualizations:** Introduce interactive charts, correlation analysis, and more detailed statistical summaries.
+* **Security Improvements:** Add dashboard authentication, configurable Wi-Fi credentials, and secure access controls.
+* **Multi-Device Support:** Explore support for multiple users and connected devices on the same local network.
+* **Hardware Expansion:** Evaluate more capable platforms, such as ESP32-S3 variants or Linux-based edge devices, for advanced processing requirements.
+
+**Long-Term Vision:** Transform EDGEQUERY into a lightweight, privacy-focused edge analytics platform that enables users to upload, explore, and analyze datasets 
+through a local web dashboard without depending entirely on cloud infrastructure.
