@@ -1,0 +1,320 @@
+# EDGEQUERY
+
+### Embedded Data Analytics & Edge Computing on ESP32
+
+**Analyze your data locally. No cloud processing. No external server required.**
+
+EDGEQUERY is an experimental embedded data analytics project that transforms an ESP32 DevKit V1 into a standalone, Wi-Fi-enabled CSV analysis engine.
+
+It provides a browser-based interface for uploading datasets, examining their structure, identifying missing values, inspecting numeric statistics, and asking predefined questions about the analyzed data.
+
+Unlike conventional data analytics applications that require a computer or cloud server to process datasets, EDGEQUERY performs its core parsing and profiling operations directly on the microcontroller.
+
+The laptop or smartphone serves as the user interface; the ESP32 handles the analysis.
+
+---
+
+## Overview
+
+EDGEQUERY creates its own Wi-Fi access point and hosts a web application accessible through a browser.
+
+Users connect to the device, open its local web interface, upload a CSV file, and receive a structured analysis of the dataset.
+
+The firmware processes uploaded data as a stream rather than permanently saving the complete dataset. This design reduces the need for external storage and makes the project suitable for experimenting with resource-constrained computing.
+
+### Key Features
+
+* **Standalone Wi-Fi access point:** Connect directly to the ESP32 without requiring an existing Wi-Fi network.
+* **Streaming CSV parser:** Processes incoming CSV data incrementally.
+* **Dataset profiling:** Reports row count, column count, missing values, and detected column types.
+* **Numeric statistics:** Calculates minimum, maximum, and average values for numeric data.
+* **Distinct-value tracking:** Tracks a limited number of distinct values using compact hashes.
+* **Dataset preview:** Displays a sample of the uploaded data.
+* **Interactive web interface:** Provides a responsive browser-based dashboard.
+* **Live device telemetry:** Displays heap usage, CPU activity estimates, and dataset-processing progress.
+* **Local question interface:** Supports predefined questions about the analyzed dataset.
+* **SQL explanation interface:** Recognizes a limited set of SQL query patterns and explains their intended meaning.
+* **Light and dark themes:** Offers a choice of dashboard appearance.
+* **Memory-conscious design:** Limits file size, column count, field length, and preview storage.
+* **No cloud dependency for core analysis:** CSV parsing and profiling run on the ESP32.
+
+---
+
+## Hardware Requirements
+
+| Component               | Specification                        |
+| ----------------------- | ------------------------------------ |
+| Microcontroller         | ESP32 DevKit V1                      |
+| Connectivity            | Built-in 2.4 GHz Wi-Fi               |
+| Programming environment | Arduino IDE                          |
+| Firmware language       | C++                                  |
+| Web server              | ESP32 WebServer library              |
+| User interface          | HTML, CSS, JavaScript                |
+| Data format             | CSV and compatible plain-text tables |
+
+The current firmware is designed for an ESP32 DevKit V1. Compatibility with other ESP32 variants has not yet been established.
+
+---
+
+## Software Architecture
+
+EDGEQUERY consists of four primary components.
+
+### 1. Wi-Fi and HTTP Server
+
+The ESP32 operates as a Wi-Fi access point and hosts an HTTP server on port 80.
+
+The browser communicates with the firmware through HTTP endpoints for uploading datasets, retrieving telemetry, and submitting supported queries.
+
+### 2. Streaming CSV Processing Engine
+
+The CSV parser processes incoming bytes incrementally.
+
+It supports:
+
+* Comma-separated fields
+* Quoted fields
+* Commas inside quoted fields
+* Escaped double quotes
+* LF and CRLF line endings
+* Newlines inside quoted fields
+* UTF-8 byte-order mark removal from the first header field
+* Truncation of oversized fields for analysis
+
+The parser maintains a bounded field buffer instead of storing the complete dataset.
+
+### 3. Dataset Profiling Engine
+
+For each column, the analyzer tracks information including:
+
+* Column name
+* Detected data type
+* Missing-value count
+* Non-empty-value count
+* Approximate distinct-value tracking
+* Numeric minimum and maximum
+* Numeric sum
+* A limited sample of the dataset
+
+Supported detected types are:
+
+* Integer
+* Float
+* Boolean
+* Date
+* Text
+* Unknown
+
+Type detection is based on the values encountered during parsing. It is a lightweight heuristic rather than a complete data-type inference system.
+
+### 4. Browser Dashboard
+
+The interface is embedded in the firmware and served directly by the ESP32.
+
+It includes:
+
+* File selection and drag-and-drop upload
+* Upload progress
+* Dataset overview
+* Schema table
+* Dataset preview
+* Missing-value visualization
+* Column-type visualization
+* Numeric statistics
+* Resource-monitoring cards
+* A predefined natural-language-style query interface
+* Light and dark themes
+
+No separate frontend build system is required for the current embedded interface.
+
+---
+
+## Resource Limits
+
+The current firmware defines the following limits.
+
+| Resource                                 | Configured limit |
+| ---------------------------------------- | ---------------: |
+| Maximum dataset size                     |            3 MiB |
+| Maximum columns                          |               64 |
+| Maximum column-name buffer               |         32 bytes |
+| Maximum field buffer                     |        128 bytes |
+| Maximum preview rows                     |                8 |
+| Maximum preview field buffer             |         32 bytes |
+| Distinct-value hashes tracked per column |               32 |
+| HTTP server port                         |               80 |
+
+**Important:** These limits are firmware configuration values, not guarantees that every dataset within the limits will be processed successfully. Available heap, row structure, response size, and device conditions can affect practical operation.
+
+The distinct-value tracker does not calculate an unlimited, exact cardinality. It stores up to 32 hashes per column and reports `32+` after reaching its tracking limit.
+
+---
+
+## Installation and Setup
+
+### Requirements
+
+* An ESP32 DevKit V1
+* A USB data cable
+* Arduino IDE
+* A compatible ESP32 Arduino board package
+* A computer or smartphone with Wi-Fi and a web browser
+
+### Step 1: Clone the repository
+
+```bash
+git clone https://github.com/YOUR_USERNAME/EDGEQUERY.git
+cd EDGEQUERY
+```
+
+Replace `YOUR_USERNAME` with your GitHub username.
+
+### Step 2: Open the firmware
+
+Open the Arduino sketch in Arduino IDE.
+
+If the sketch has not yet been organized into a matching `.ino` project, create a sketch named `EDGEQUERY` and place the firmware in `EDGEQUERY.ino`.
+
+### Step 3: Select the board
+
+In Arduino IDE, select:
+
+`Tools → Board → esp32 → DOIT ESP32 DEVKIT V1`
+
+Select the appropriate serial port for your ESP32.
+
+### Step 4: Configure Wi-Fi credentials
+
+Before deployment, configure the access-point credentials in the firmware.
+
+Use a unique password rather than the example password in the source code.
+
+### Step 5: Compile and upload
+
+Compile the sketch and upload it to the ESP32.
+
+Open Serial Monitor at **115200 baud** to inspect startup messages, the access-point address, and analysis logs.
+
+### Step 6: Connect to EDGEQUERY
+
+Connect your laptop or smartphone to the Wi-Fi network advertised by the ESP32.
+
+Open the local IP address printed in Serial Monitor. The default ESP32 soft-AP address is commonly `192.168.4.1`, but the actual address printed by the firmware is authoritative.
+
+### Step 7: Analyze a dataset
+
+1. Open the dashboard.
+2. Select a CSV file no larger than 3 MiB.
+3. Click **Analyze Dataset**.
+4. Wait for processing to finish.
+5. Inspect the overview, schema, preview, missing-value profile, and numeric statistics.
+6. Try one of the supported questions in the dataset query interface.
+
+---
+
+## API Endpoints
+
+The current firmware registers the following HTTP routes.
+
+| Method | Endpoint       | Purpose                                           |
+| ------ | -------------- | ------------------------------------------------- |
+| GET    | `/`            | Serves the embedded dashboard                     |
+| GET    | `/status`      | Returns device and dataset telemetry              |
+| POST   | `/analyze`     | Receives and processes an uploaded dataset        |
+| POST   | `/query`       | Handles supported dataset questions               |
+| POST   | `/sql-explain` | Explains a limited set of recognized SQL patterns |
+
+The `/analyze` endpoint uses the ESP32 WebServer library's upload callback to process the incoming file.
+
+The query endpoints are rule-based. They do not provide arbitrary SQL execution, general-purpose natural-language understanding, or machine-learning inference.
+
+---
+
+## Privacy and Data Handling
+
+EDGEQUERY is designed to perform its core dataset analysis locally on the ESP32.
+
+The firmware does not intentionally save the complete uploaded dataset to permanent storage. It maintains analysis metadata, counters, hashes, and a limited preview in memory.
+
+The current architecture does not require an external analytics service or cloud API.
+
+However, local processing alone does not guarantee security. Anyone able to connect to the access point and reach the HTTP server may be able to interact with its endpoints. Authentication, access control, and deployment security should be improved before the project is used with sensitive data.
+
+---
+
+## Current Limitations
+
+EDGEQUERY is an experimental embedded analytics engine, not a replacement for a full data analytics platform.
+
+Known limitations include:
+
+* CSV input only; XLSX, JSON, Parquet, and other structured formats are not implemented.
+* Column types are inferred using lightweight heuristics.
+* Numeric statistics use floating-point accumulation.
+* Distinct-value tracking is bounded and hash-based.
+* The preview stores only a limited number of rows and characters per field.
+* Natural-language-style questions are handled by predefined rules.
+* SQL input is recognized selectively; it is not executed by a general-purpose SQL engine.
+* Resource telemetry provides estimates and heap information rather than comprehensive hardware performance monitoring.
+* The dashboard has not been validated against every malformed CSV file or memory-pressure scenario.
+* Multi-client behavior and maximum reliable dataset throughput require further testing.
+
+---
+
+## Roadmap
+
+### Reliability
+
+* [ ] Add automated CSV parser tests.
+* [ ] Improve malformed-input handling.
+* [ ] Test empty files and inconsistent row lengths.
+* [ ] Improve numeric precision and overflow handling.
+* [ ] Add stronger memory-pressure safeguards.
+* [ ] Validate HTTP response sizes on large schemas.
+
+### Analytics
+
+* [ ] Improve type inference.
+* [ ] Add median and other useful descriptive statistics.
+* [ ] Improve distinct-value estimation.
+* [ ] Expand supported dataset questions.
+* [ ] Clearly distinguish supported query patterns from unsupported queries.
+
+### Security
+
+* [ ] Replace hardcoded Wi-Fi credentials with configurable credentials.
+* [ ] Add request and input validation.
+* [ ] Consider authentication for sensitive deployments.
+* [ ] Review HTTP resource-exhaustion risks.
+
+### User Experience
+
+* [ ] Improve accessibility.
+* [ ] Add clearer parsing and validation errors.
+* [ ] Improve telemetry labels and measurement accuracy.
+* [ ] Add sample datasets and screenshots.
+
+### Testing and Documentation
+
+* [ ] Document the tested board and Arduino core versions.
+* [ ] Add reproducible build instructions.
+* [ ] Publish test datasets and expected outputs.
+* [ ] Document measured performance and memory usage.
+
+---
+
+## Contributing
+
+Contributions are welcome.
+
+Potential areas of contribution include embedded C++, CSV parsing, memory optimization, frontend development, test automation, and documentation.
+
+When submitting a change, include a description of the problem, the proposed solution, and any relevant test results.
+
+## License
+
+A license has not yet been specified in this project description. Add a suitable `LICENSE` file before distributing the project for reuse.
+
+## Acknowledgments
+
+Built as an exploration of embedded analytics, edge computing, and browser-based interfaces for resource-constrained microcontrollers.
