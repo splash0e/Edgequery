@@ -2,75 +2,128 @@
 
 ### Embedded Data Analytics & Edge Computing on ESP32
 
-**Analyze your data locally. No cloud processing. No external server required.**
+**Analyze locally. Store persistently. Process efficiently.**
 
-EDGEQUERY is an experimental embedded data analytics project that transforms an ESP32 DevKit V1 into a standalone, Wi-Fi-enabled CSV analysis engine.
+EDGEQUERY is an experimental embedded data analytics platform that transforms an ESP32 DevKit V1 into a standalone, Wi-Fi-enabled CSV analysis engine with a proposed external-storage subsystem.
 
-It provides a browser-based interface for uploading datasets, examining their structure, identifying missing values, inspecting numeric statistics, and asking predefined questions about the analyzed data.
+The project combines embedded data processing, browser-based visualization, persistent dataset storage, and resource monitoring to explore data analytics on resource-constrained hardware.
 
-Unlike conventional data analytics applications that require a computer or cloud server to process datasets, EDGEQUERY performs its core parsing and profiling operations directly on the microcontroller.
+The laptop or smartphone acts as the user interface, while the ESP32 performs the core parsing and profiling operations.
 
-The laptop or smartphone serves as the user interface; the ESP32 handles the analysis.
+The proposed external-storage extension introduces persistent dataset archives, analysis reports, and storage-management capabilities without requiring the complete dataset to reside in RAM.
 
 ---
 
 ## Overview
 
-EDGEQUERY creates its own Wi-Fi access point and hosts a web application accessible through a browser.
+EDGEQUERY creates its own Wi-Fi access point and hosts a browser-based dashboard directly on the ESP32.
 
-Users connect to the device, open its local web interface, upload a CSV file, and receive a structured analysis of the dataset.
+Users connect to the device, upload CSV datasets, inspect their structure, analyze missing values, calculate numeric statistics, and examine the results through an interactive interface.
 
-The firmware processes uploaded data as a stream rather than permanently saving the complete dataset. This design reduces the need for external storage and makes the project suitable for experimenting with resource-constrained computing.
+The external-storage architecture introduces an SPI-connected storage device for retaining uploaded datasets and generated reports.
+
+By separating persistent storage from working memory, EDGEQUERY aims to support larger datasets while maintaining a memory-conscious processing pipeline.
+
+**Project status:** External-storage architecture proposed; firmware integration and hardware validation pending.
 
 ### Key Features
 
-* **Standalone Wi-Fi access point:** Connect directly to the ESP32 without requiring an existing Wi-Fi network.
+* **Standalone Wi-Fi access point:** Connect directly to EDGEQUERY without requiring an existing Wi-Fi network.
 * **Streaming CSV parser:** Processes incoming CSV data incrementally.
-* **Dataset profiling:** Reports row count, column count, missing values, and detected column types.
-* **Numeric statistics:** Calculates minimum, maximum, and average values for numeric data.
-* **Distinct-value tracking:** Tracks a limited number of distinct values using compact hashes.
-* **Dataset preview:** Displays a sample of the uploaded data.
-* **Interactive web interface:** Provides a responsive browser-based dashboard.
-* **Live device telemetry:** Displays heap usage, CPU activity estimates, and dataset-processing progress.
-* **Local question interface:** Supports predefined questions about the analyzed dataset.
-* **SQL explanation interface:** Recognizes a limited set of SQL query patterns and explains their intended meaning.
-* **Light and dark themes:** Offers a choice of dashboard appearance.
-* **Memory-conscious design:** Limits file size, column count, field length, and preview storage.
-* **No cloud dependency for core analysis:** CSV parsing and profiling run on the ESP32.
+* **Dataset profiling:** Reports row counts, column counts, missing values, and detected column types.
+* **Numeric statistics:** Calculates minimum, maximum, and average values for supported numeric columns.
+* **Distinct-value tracking:** Tracks a bounded number of distinct-value hashes.
+* **Dataset preview:** Displays a limited sample of uploaded records.
+* **Interactive web dashboard:** Provides browser-based dataset visualization and management.
+* **Live device telemetry:** Displays heap usage, CPU activity estimates, and processing information.
+* **Persistent dataset storage:** Proposed support for saving uploaded datasets to external storage.
+* **Analysis report storage:** Proposed support for saving schema profiles and statistical summaries.
+* **Dataset management:** Planned browsing, selection, and deletion of stored datasets.
+* **Storage monitoring:** Planned reporting of total, used, and available storage.
+* **Analysis history:** Planned retention of previous analysis reports.
+* **Light and dark themes:** Provides alternative dashboard appearances.
+* **Local processing:** Core CSV parsing and profiling do not require cloud processing.
 
 ---
 
 ## Hardware Requirements
 
-| Component               | Specification                        |
-| ----------------------- | ------------------------------------ |
-| Microcontroller         | ESP32 DevKit V1                      |
-| Connectivity            | Built-in 2.4 GHz Wi-Fi               |
-| Programming environment | Arduino IDE                          |
-| Firmware language       | C++                                  |
-| Web server              | ESP32 WebServer library              |
-| User interface          | HTML, CSS, JavaScript                |
-| Data format             | CSV and compatible plain-text tables |
+| Component                  | Specification                        |
+| -------------------------- | ------------------------------------ |
+| Microcontroller            | ESP32 DevKit V1                      |
+| Connectivity               | Built-in 2.4 GHz Wi-Fi               |
+| External storage interface | SPI                                  |
+| Proposed storage hardware  | SPI-compatible microSD reader module |
+| Proposed storage medium    | microSD card                         |
+| Programming environment    | Arduino IDE                          |
+| Firmware language          | C++                                  |
+| Web server                 | ESP32 WebServer library              |
+| User interface             | HTML, CSS, JavaScript                |
+| Primary dataset format     | CSV                                  |
 
-The current firmware is designed for an ESP32 DevKit V1. Compatibility with other ESP32 variants has not yet been established.
+The existing firmware targets the ESP32 DevKit V1.
+
+**Storage compatibility note:** A standard USB pendrive cannot be connected directly to an ordinary SPI microSD reader. Using a USB pendrive instead requires a compatible USB host solution and additional software support.
+
+---
+
+## System Architecture
+
+```text
+                 LAPTOP / SMARTPHONE
+                          |
+                    Wi-Fi Connection
+                          |
+                          v
+              +-------------------------+
+              |      ESP32 DevKit V1    |
+              |                         |
+              |   EDGEQUERY Web UI      |
+              |   HTTP Web Server       |
+              |   Upload Manager        |
+              |   CSV Streaming Parser  |
+              |   Schema Profiler       |
+              |   Statistics Engine    |
+              |   Dataset Manager      |
+              |   Storage Manager      |
+              +------------+------------+
+                           |
+                      SPI Interface
+                  SCK / MOSI / MISO / CS
+                           |
+                           v
+              +-------------------------+
+              |    External Storage     |
+              |                         |
+              |   CSV Datasets          |
+              |   Dataset Archive       |
+              |   Analysis Reports      |
+              |   Configuration         |
+              |   Analysis History      |
+              +-------------------------+
+```
+
+The architecture separates the user interface, analysis engine, and persistent storage subsystem.
+
+The ESP32 remains responsible for processing data. External storage provides additional capacity for retaining files and reports.
 
 ---
 
 ## Software Architecture
 
-EDGEQUERY consists of four primary components.
+EDGEQUERY is organized around the following logical components.
 
 ### 1. Wi-Fi and HTTP Server
 
 The ESP32 operates as a Wi-Fi access point and hosts an HTTP server on port 80.
 
-The browser communicates with the firmware through HTTP endpoints for uploading datasets, retrieving telemetry, and submitting supported queries.
+The browser communicates with the firmware through HTTP endpoints for dataset uploads, telemetry, and supported queries.
 
 ### 2. Streaming CSV Processing Engine
 
-The CSV parser processes incoming bytes incrementally.
+The parser processes incoming CSV data incrementally rather than loading the complete file into RAM.
 
-It supports:
+Supported parsing features in the existing design include:
 
 * Comma-separated fields
 * Quoted fields
@@ -79,13 +132,11 @@ It supports:
 * LF and CRLF line endings
 * Newlines inside quoted fields
 * UTF-8 byte-order mark removal from the first header field
-* Truncation of oversized fields for analysis
-
-The parser maintains a bounded field buffer instead of storing the complete dataset.
+* Bounded field buffering
 
 ### 3. Dataset Profiling Engine
 
-For each column, the analyzer tracks information including:
+The analyzer maintains metadata and statistics for each column, including:
 
 * Column name
 * Detected data type
@@ -94,127 +145,200 @@ For each column, the analyzer tracks information including:
 * Approximate distinct-value tracking
 * Numeric minimum and maximum
 * Numeric sum
-* A limited sample of the dataset
+* Limited dataset preview
 
-Supported detected types are:
+Supported detected types include integer, float, boolean, date, text, and unknown.
 
-* Integer
-* Float
-* Boolean
-* Date
-* Text
-* Unknown
+Type detection uses lightweight heuristics rather than a complete data-type inference engine.
 
-Type detection is based on the values encountered during parsing. It is a lightweight heuristic rather than a complete data-type inference system.
+### 4. Storage Manager — Proposed
 
-### 4. Browser Dashboard
+The storage manager will provide a dedicated interface between the analysis engine and the external filesystem.
 
-The interface is embedded in the firmware and served directly by the ESP32.
+Planned responsibilities include:
 
-It includes:
+* Storage initialization
+* Filesystem availability checks
+* File creation and writing
+* Incremental dataset storage
+* File reading
+* Dataset deletion
+* Free-space reporting
+* Handling failed writes and unavailable storage
 
-* File selection and drag-and-drop upload
-* Upload progress
-* Dataset overview
-* Schema table
-* Dataset preview
-* Missing-value visualization
-* Column-type visualization
-* Numeric statistics
-* Resource-monitoring cards
-* A predefined natural-language-style query interface
-* Light and dark themes
+### 5. Dataset Manager — Proposed
 
-No separate frontend build system is required for the current embedded interface.
+The dataset manager will coordinate dataset uploads, persistent storage, analysis requests, and file metadata.
+
+It will allow the application to distinguish between a newly uploaded dataset, a stored dataset, and a completed analysis.
+
+### 6. Report Manager — Proposed
+
+The report manager will serialize analysis results into persistent JSON reports.
+
+Reports may include dataset dimensions, column metadata, missing-value counts, numeric statistics, processing duration, and a reference to the source dataset.
+
+### 7. Browser Dashboard
+
+The existing interface provides dataset upload, progress indicators, schema visualization, preview tables, numeric statistics, telemetry, and theme selection.
+
+The proposed storage extension will add a dataset browser, storage-capacity indicators, file-management controls, and analysis-history navigation.
+
+---
+
+## External Storage Architecture
+
+The proposed storage subsystem uses an SPI-compatible microSD module and a FAT-compatible filesystem supported by the ESP32 Arduino environment.
+
+A possible directory structure is:
+
+```text
+/EDGEQUERY/
+    /datasets/
+        dataset_001.csv
+        dataset_002.csv
+        dataset_003.csv
+
+    /reports/
+        dataset_001.json
+        dataset_002.json
+
+    /config/
+        settings.json
+
+    /history/
+        analysis_log.csv
+```
+
+### Directory Responsibilities
+
+| Directory   | Purpose                               |
+| ----------- | ------------------------------------- |
+| `/datasets` | Stores uploaded datasets              |
+| `/reports`  | Stores generated analysis reports     |
+| `/config`   | Stores application settings           |
+| `/history`  | Records completed analysis operations |
+
+The firmware should create missing directories during initialization and handle unavailable storage, full storage, failed writes, and interrupted uploads gracefully.
+
+These directories and storage operations are part of the proposed implementation and are not yet confirmed as operational.
+
+---
+
+## SPI Wiring
+
+For a typical ESP32 DevKit V1 using its default VSPI pins, the proposed wiring is:
+
+| ESP32 Pin | microSD Module Pin              |
+| --------- | ------------------------------- |
+| GPIO 18   | SCK / CLK                       |
+| GPIO 23   | MOSI / DI                       |
+| GPIO 19   | MISO / DO                       |
+| GPIO 5    | CS                              |
+| 3.3 V     | VCC, if supported by the module |
+| GND       | GND                             |
+
+The selected pins must match the firmware configuration.
+
+Use a module compatible with the ESP32's 3.3 V logic, and verify the module's power requirements before connecting it.
+
+---
+
+## Dataset Processing Pipeline
+
+The proposed external-storage workflow is designed to minimize RAM consumption.
+
+1. **Receive:** The browser uploads a CSV dataset through the HTTP server.
+2. **Validate:** The firmware validates the filename, upload state, file size, and available storage.
+3. **Store:** Incoming chunks are written incrementally to external storage.
+4. **Analyze:** The CSV parser processes the dataset incrementally.
+5. **Profile:** The analyzer calculates supported statistics and maintains schema metadata.
+6. **Generate:** The report manager creates a structured JSON analysis report.
+7. **Persist:** The report is saved externally, and the analysis history is updated.
+8. **Display:** The dashboard presents the analysis results and storage information.
+
+The implementation should use temporary filenames during uploads and promote files to their final names only after successful completion.
+
+This reduces the risk of treating an incomplete upload as a valid dataset.
+
+**Important:** External storage increases persistent capacity, not RAM capacity or processing speed. Supported dataset sizes will depend on the final implementation, parser constraints, filesystem behavior, and available working memory.
 
 ---
 
 ## Resource Limits
 
-The current firmware defines the following limits.
+The existing firmware uses the following limits.
 
-| Resource                                 | Configured limit |
-| ---------------------------------------- | ---------------: |
-| Maximum dataset size                     |            3 MiB |
-| Maximum columns                          |               64 |
-| Maximum column-name buffer               |         32 bytes |
-| Maximum field buffer                     |        128 bytes |
-| Maximum preview rows                     |                8 |
-| Maximum preview field buffer             |         32 bytes |
-| Distinct-value hashes tracked per column |               32 |
-| HTTP server port                         |               80 |
+| Resource                         | Current Configuration |
+| -------------------------------- | --------------------: |
+| Maximum dataset size             |                 3 MiB |
+| Maximum columns                  |                    64 |
+| Maximum column-name buffer       |              32 bytes |
+| Maximum field buffer             |             128 bytes |
+| Maximum preview rows             |                     8 |
+| Maximum preview field buffer     |              32 bytes |
+| Distinct-value hashes per column |                    32 |
+| HTTP server port                 |                    80 |
 
-**Important:** These limits are firmware configuration values, not guarantees that every dataset within the limits will be processed successfully. Available heap, row structure, response size, and device conditions can affect practical operation.
+The proposed external-storage edition aims to replace the fixed upload restriction with a configurable limit validated against available storage and processing constraints.
 
-The distinct-value tracker does not calculate an unlimited, exact cardinality. It stores up to 32 hashes per column and reports `32+` after reaching its tracking limit.
+The initial implementation should retain the existing column, field, preview, and distinct-value limits until testing demonstrates that increasing them is safe.
+
+The maximum supported file size must be established through testing rather than assumed to equal the storage device's total capacity.
 
 ---
 
-## Installation and Setup
+## Web Dashboard Enhancements
 
-### Requirements
+The proposed storage-enabled dashboard will introduce the following sections.
 
-* An ESP32 DevKit V1
-* A USB data cable
-* Arduino IDE
-* A compatible ESP32 Arduino board package
-* A computer or smartphone with Wi-Fi and a web browser
+### Device Monitor
 
-### Step 1: Clone the repository
+* CPU activity estimate
+* Free heap
+* Heap usage
+* Processing duration
 
-```bash
-git clone https://github.com/YOUR_USERNAME/EDGEQUERY.git
-cd EDGEQUERY
-```
+### Storage Monitor
 
-Replace `YOUR_USERNAME` with your GitHub username.
+* Total storage capacity
+* Used storage
+* Available storage
+* Storage utilization percentage
 
-### Step 2: Open the firmware
+### Dataset Manager
 
-Open the Arduino sketch in Arduino IDE.
+* List stored datasets
+* Display filenames and file sizes
+* Select datasets for analysis
+* Delete stored datasets
+* Display upload progress
+* Report storage errors
 
-If the sketch has not yet been organized into a matching `.ino` project, create a sketch named `EDGEQUERY` and place the firmware in `EDGEQUERY.ino`.
+### Analysis History
 
-### Step 3: Select the board
+* List previous analysis reports
+* Reopen saved reports
+* Identify the source dataset
+* Display processing duration
+* Record analysis timestamps
 
-In Arduino IDE, select:
+### Data Analysis
 
-`Tools → Board → esp32 → DOIT ESP32 DEVKIT V1`
+* Dataset overview
+* Schema profile
+* Missing-value visualization
+* Numeric statistics
+* Dataset preview
+* Supported predefined questions
 
-Select the appropriate serial port for your ESP32.
-
-### Step 4: Configure Wi-Fi credentials
-
-Before deployment, configure the access-point credentials in the firmware.
-
-Use a unique password rather than the example password in the source code.
-
-### Step 5: Compile and upload
-
-Compile the sketch and upload it to the ESP32.
-
-Open Serial Monitor at **115200 baud** to inspect startup messages, the access-point address, and analysis logs.
-
-### Step 6: Connect to EDGEQUERY
-
-Connect your laptop or smartphone to the Wi-Fi network advertised by the ESP32.
-
-Open the local IP address printed in Serial Monitor. The default ESP32 soft-AP address is commonly `192.168.4.1`, but the actual address printed by the firmware is authoritative.
-
-### Step 7: Analyze a dataset
-
-1. Open the dashboard.
-2. Select a CSV file no larger than 3 MiB.
-3. Click **Analyze Dataset**.
-4. Wait for processing to finish.
-5. Inspect the overview, schema, preview, missing-value profile, and numeric statistics.
-6. Try one of the supported questions in the dataset query interface.
+These enhancements require implementation in both the firmware and frontend before they can be considered available features.
 
 ---
 
 ## API Endpoints
 
-The current firmware registers the following HTTP routes.
+The existing firmware registers the following endpoints.
 
 | Method | Endpoint       | Purpose                                           |
 | ------ | -------------- | ------------------------------------------------- |
@@ -224,97 +348,156 @@ The current firmware registers the following HTTP routes.
 | POST   | `/query`       | Handles supported dataset questions               |
 | POST   | `/sql-explain` | Explains a limited set of recognized SQL patterns |
 
-The `/analyze` endpoint uses the ESP32 WebServer library's upload callback to process the incoming file.
+The external-storage implementation may introduce additional endpoints for dataset listing, deletion, storage information, and stored-report retrieval.
 
-The query endpoints are rule-based. They do not provide arbitrary SQL execution, general-purpose natural-language understanding, or machine-learning inference.
+Those endpoints should be documented after their routes and behavior are implemented.
+
+The existing query interface is rule-based. It does not provide arbitrary SQL execution, general-purpose natural-language understanding, or machine-learning inference.
+
+---
+
+## Installation and Setup
+
+### Requirements
+
+* ESP32 DevKit V1
+* USB data cable
+* Arduino IDE
+* Compatible ESP32 Arduino board package
+* SPI-compatible microSD reader module
+* Compatible microSD card
+* Laptop or smartphone with Wi-Fi and a browser
+
+### Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/YOUR_USERNAME/EDGEQUERY.git
+cd EDGEQUERY
+```
+
+Replace `YOUR_USERNAME` with your GitHub username.
+
+### Step 2: Prepare the Firmware
+
+Open the EDGEQUERY Arduino sketch.
+
+Configure the storage pins and storage settings in the firmware when the storage integration is available.
+
+### Step 3: Connect the Storage Module
+
+Connect the SPI microSD module according to the wiring table.
+
+Check power requirements and wiring before powering the device.
+
+### Step 4: Select the Board
+
+In Arduino IDE, select:
+
+`Tools → Board → esp32 → DOIT ESP32 DEVKIT V1`
+
+Select the appropriate serial port.
+
+### Step 5: Compile and Upload
+
+Compile the firmware and upload it to the ESP32.
+
+Open Serial Monitor at 115200 baud to inspect startup messages, the access-point address, and storage initialization status.
+
+### Step 6: Connect to EDGEQUERY
+
+Connect your laptop or smartphone to the Wi-Fi network advertised by the ESP32.
+
+Open the IP address printed in Serial Monitor. The default ESP32 soft-AP address is commonly `192.168.4.1`, but the address printed by the firmware is authoritative.
+
+### Step 7: Analyze a Dataset
+
+Once external-storage integration is implemented:
+
+1. Open the dashboard.
+2. Select a CSV file.
+3. Upload the dataset.
+4. Wait for storage and analysis to complete.
+5. Inspect the schema, preview, missing-value profile, and numeric statistics.
+6. Verify that the dataset and report appear in the storage manager.
+
+The final workflow and supported upload limit must be confirmed through hardware testing.
+
+---
+
+## Reliability and Data Integrity
+
+Persistent storage introduces additional failure modes that must be handled explicitly.
+
+The implementation should include:
+
+* File-size and free-space validation
+* Incremental file writes
+* Write-error detection
+* Incomplete-upload cleanup
+* Safe filename handling
+* Filesystem initialization checks
+* Graceful handling of missing storage
+* Recovery from interrupted operations where practical
+* Validation before deleting stored files
+* Protection against invalid filesystem paths
+
+The application should not mark a dataset as successfully stored until the write operation has completed successfully.
+
+Analysis reports should be generated only after the corresponding dataset has been processed successfully.
 
 ---
 
 ## Privacy and Data Handling
 
-EDGEQUERY is designed to perform its core dataset analysis locally on the ESP32.
+EDGEQUERY is designed for local data processing without requiring a cloud analytics service.
 
-The firmware does not intentionally save the complete uploaded dataset to permanent storage. It maintains analysis metadata, counters, hashes, and a limited preview in memory.
+The proposed external-storage extension will retain datasets and reports on the connected storage device.
 
-The current architecture does not require an external analytics service or cloud API.
+Local processing does not automatically guarantee security. Access-point credentials, request validation, filesystem path validation, and dataset-management permissions must be considered before sensitive datasets are used.
 
-However, local processing alone does not guarantee security. Anyone able to connect to the access point and reach the HTTP server may be able to interact with its endpoints. Authentication, access control, and deployment security should be improved before the project is used with sensitive data.
+The storage subsystem should not expose arbitrary filesystem access through the web interface.
 
 ---
 
 ## Current Limitations
 
-EDGEQUERY is an experimental embedded analytics engine, not a replacement for a full data analytics platform.
+EDGEQUERY remains an experimental embedded analytics project.
 
-Known limitations include:
+Known limitations of the existing implementation include:
 
-* CSV input only; XLSX, JSON, Parquet, and other structured formats are not implemented.
+* CSV input only; XLSX, JSON, and Parquet are not implemented.
 * Column types are inferred using lightweight heuristics.
 * Numeric statistics use floating-point accumulation.
 * Distinct-value tracking is bounded and hash-based.
-* The preview stores only a limited number of rows and characters per field.
+* The dataset preview stores only a limited number of rows.
 * Natural-language-style questions are handled by predefined rules.
-* SQL input is recognized selectively; it is not executed by a general-purpose SQL engine.
-* Resource telemetry provides estimates and heap information rather than comprehensive hardware performance monitoring.
-* The dashboard has not been validated against every malformed CSV file or memory-pressure scenario.
-* Multi-client behavior and maximum reliable dataset throughput require further testing.
+* SQL input is recognized selectively rather than executed by a general-purpose SQL engine.
+* CPU telemetry is an estimate rather than comprehensive hardware performance monitoring.
+* Malformed-input and memory-pressure scenarios require further testing.
+* Multi-client behavior and maximum reliable throughput require validation.
 
----
+Additional limitations apply to the proposed storage extension:
 
-## Roadmap
+* SPI storage initialization has not yet been integrated.
+* Persistent dataset uploads have not yet been implemented.
+* Storage telemetry has not yet been implemented.
+* Persistent analysis reports and history are planned.
+* Maximum reliable dataset size has not yet been established.
+* Power-loss recovery and storage-failure handling require testing.
 
-### Reliability
-
-* [ ] Add automated CSV parser tests.
-* [ ] Improve malformed-input handling.
-* [ ] Test empty files and inconsistent row lengths.
-* [ ] Improve numeric precision and overflow handling.
-* [ ] Add stronger memory-pressure safeguards.
-* [ ] Validate HTTP response sizes on large schemas.
-
-### Analytics
-
-* [ ] Improve type inference.
-* [ ] Add median and other useful descriptive statistics.
-* [ ] Improve distinct-value estimation.
-* [ ] Expand supported dataset questions.
-* [ ] Clearly distinguish supported query patterns from unsupported queries.
-
-### Security
-
-* [ ] Replace hardcoded Wi-Fi credentials with configurable credentials.
-* [ ] Add request and input validation.
-* [ ] Consider authentication for sensitive deployments.
-* [ ] Review HTTP resource-exhaustion risks.
-
-### User Experience
-
-* [ ] Improve accessibility.
-* [ ] Add clearer parsing and validation errors.
-* [ ] Improve telemetry labels and measurement accuracy.
-* [ ] Add sample datasets and screenshots.
-
-### Testing and Documentation
-
-* [ ] Document the tested board and Arduino core versions.
-* [ ] Add reproducible build instructions.
-* [ ] Publish test datasets and expected outputs.
-* [ ] Document measured performance and memory usage.
-
----
 
 ## Contributing
 
 Contributions are welcome.
 
-Potential areas of contribution include embedded C++, CSV parsing, memory optimization, frontend development, test automation, and documentation.
+Potential areas of contribution include embedded C++, SPI storage integration, CSV parsing, memory optimization, frontend development, automated testing, and documentation.
 
-When submitting a change, include a description of the problem, the proposed solution, and any relevant test results.
+When submitting a change, include a description of the problem, the proposed solution, and relevant test results.
 
 ## License
 
-A license has not yet been specified in this project description. Add a suitable `LICENSE` file before distributing the project for reuse.
+A license has not yet been specified. Add a suitable `LICENSE` file before distributing the project for reuse.
 
 ## Acknowledgments
 
-Built as an exploration of embedded analytics, edge computing, and browser-based interfaces for resource-constrained microcontrollers.
+EDGEQUERY is an exploration of embedded analytics, edge computing, persistent data storage, and browser-based interfaces for resource-constrained microcontrollers.
