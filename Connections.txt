@@ -1,0 +1,9 @@
+| No. | Component Pin | Connect To          | Purpose                    |
+| --: | ------------- | ------------------- | -------------------------- |
+|   1 | ESP32 GPIO 18 | microSD SCK         | SPI Clock                  |
+|   2 | ESP32 GPIO 23 | microSD MOSI        | Data to storage            |
+|   3 | ESP32 GPIO 19 | microSD MISO        | Data from storage          |
+|   4 | ESP32 GPIO 5  | microSD CS          | Chip Select                |
+|   5 | ESP32 3.3V    | microSD VCC*        | Power supply               |
+|   6 | ESP32 GND     | microSD GND         | Common ground              |
+|   7 | ESP32 Wi-Fi   | Laptop / Smartphone | Access EDGEQUERY dashboard |
